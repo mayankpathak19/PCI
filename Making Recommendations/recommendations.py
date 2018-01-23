@@ -131,9 +131,60 @@ def get_recommendations(data, person, similarity=pearson_correlation):
     return sorted([(total / similarity_sums[item], item) for item, total in totals.items()], reverse=True)
 
 
+def transform_data(data):
+    result = dict()
+    for person in data:
+        for item in data[person]:
+            result.setdefault(item, dict())
+            # Flip item and person
+            result[item][person] = data[person][item]
+    return result
+
+
+def calculate_similar_items(data, n=10):
+    # Create a dictionary of items showing which other items they are most similar to.
+    result = dict()
+    # Invert the data matrix to be item-centric.
+    temp = transform_data(data)
+    count = 0
+    for item in temp:
+        # Status updates for large datasets.
+        count += 1
+        if not count % 100:
+            print('%d\t%d' % (count, len(temp)))
+        # Find the most similar items to this one
+        scores = top_matches(temp, item, n=n, similarity=euclidean_distance)
+        result[item] = scores
+    return result
+
+
+def get_recommended_items(data, item_based_data, user):
+    user_ratings, scores, total_similarity = data[user], dict(), dict()
+    # Loop over items rated by this user
+    for (item, rating) in user_ratings.items():
+        # Loop over items similar to this one
+        for (similarity, item2) in item_based_data[item]:
+            # Ignore if this user has already rated this item
+            if item2 in user_ratings:
+                continue
+            # Weighted sum of rating times similarity
+            scores.setdefault(item2, 0)
+            scores[item2] += (similarity * rating)
+            # Sum of all the similarities
+            total_similarity.setdefault(item2, 0)
+            total_similarity[item2] += similarity
+    # Divide each total score by total weighting to get an average
+    return sorted([(score / total_similarity[item], item) for (item, score) in scores.items()], reverse=True)
+
+
 if __name__ == '__main__':
     # print(euclidean_distance(critics, 'Lisa Rose', 'Gene Seymour'))
     # print(pearson_correlation(critics, 'Lisa Rose', 'Gene Seymour'))
     # print(top_matches(critics, 'Toby', n=3))
-    print(get_recommendations(critics, 'Toby'))
-    print(get_recommendations(critics, 'Toby', similarity=euclidean_distance))
+    # print(get_recommendations(critics, 'Toby'))
+    # print(get_recommendations(critics, 'Toby', similarity=euclidean_distance))
+    # print(top_matches(transform_data(critics), 'Superman Returns'))
+    # print(get_recommendations(transform_data(critics), 'Just My Luck'))
+    # print(calculate_similar_items(critics))
+    print(get_recommended_items(critics, calculate_similar_items(critics), 'Toby'))
+

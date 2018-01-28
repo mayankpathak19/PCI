@@ -177,6 +177,20 @@ def get_recommended_items(data, item_based_data, user):
     return sorted([(score / total_similarity[item], item) for (item, score) in scores.items()], reverse=True)
 
 
+def load_dataset():
+    # Get movie titles
+    movies = dict()
+    for line in open('u.item', 'r'):
+        (id, title) = line.split('|')[0:2]
+        movies[id] = title
+    # Load data
+    result = dict()
+    for line in open('u.data', 'r'):
+        (user, movie_id, rating, timestamp) = line.split('\t')
+        result.setdefault(user, dict())
+        result[user][movies[movie_id]] = float(rating)
+    return result
+
 if __name__ == '__main__':
     # print(euclidean_distance(critics, 'Lisa Rose', 'Gene Seymour'))
     # print(pearson_correlation(critics, 'Lisa Rose', 'Gene Seymour'))
@@ -186,5 +200,8 @@ if __name__ == '__main__':
     # print(top_matches(transform_data(critics), 'Superman Returns'))
     # print(get_recommendations(transform_data(critics), 'Just My Luck'))
     # print(calculate_similar_items(critics))
-    print(get_recommended_items(critics, calculate_similar_items(critics), 'Toby'))
-
+    # print(get_recommended_items(critics, calculate_similar_items(critics), 'Toby'))
+    # print(get_recommendations(load_dataset(), '87')[0:30])
+    data = load_dataset()
+    itemize = calculate_similar_items(data, n=50)
+    print(get_recommended_items(data, itemize, '87')[0:30])
